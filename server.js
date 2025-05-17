@@ -28,6 +28,9 @@ const checkDeviceId = (req, res, next) => {
     next();
 };
 
+
+// I) API liên quan đến kiểm tra thông tin người dùng
+// Kiểm tra username
 app.post('/check-username', checkDeviceId, async (req, res) => {
     const { username, device_id } = req.body;
     
@@ -57,7 +60,7 @@ app.post('/check-username', checkDeviceId, async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
-
+// Kiểm tra password, deviceID và accesscode 
 app.post('/check-password', checkDeviceId, async (req, res) => {
     const { access_code, password, device_id } = req.body;
     const accessData = accessCodes.get(access_code);
@@ -81,11 +84,7 @@ app.post('/check-password', checkDeviceId, async (req, res) => {
         if (password !== result.rows[0].password) {
             return res.status(401).json({ error: 'Invalid password' });
         }
-
-        // Xóa access code sau khi sử dụng
         accessCodes.delete(access_code);
-
-        // Tạo JWT
         const token = jwt.sign(
             { user_id: accessData.user_id, username: result.rows[0].username },
             JWT_SECRET,
@@ -95,25 +94,21 @@ app.post('/check-password', checkDeviceId, async (req, res) => {
         res.json({ 
             message: 'Login successful',
             user_id: accessData.user_id,
-            token // Trả về token cho client
+            token
         });
     } catch (error) {
         console.error('Error checking password:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
-
+//Duy trì đăng nhập
 app.get('/verify-session', (req, res) => {
     const authHeader = req.headers['authorization'];
-    
-    // Kiểm tra Authorization header
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Invalid or missing Authorization header' });
     }
 
     const token = authHeader.split(' ')[1];
-
-    // Kiểm tra token cơ bản
     if (!token || token.split('.').length !== 3) {
         return res.status(401).json({ error: 'Malformed token' });
     }
@@ -132,12 +127,14 @@ app.get('/verify-session', (req, res) => {
         res.status(401).json({ error: 'Invalid or expired token' });
     }
 });
-
+//Đăng xuất
 app.post('/logout', (req, res) => {
-    // Vì JWT là stateless, không cần xử lý trên server
     res.json({ message: 'Logged out successfully' });
 });
 
+
+//II) API liên quan đến đối tác
+// Xem tất cả các đối tác
 app.get('/partners', async (req, res) => {
     try {
       const result = await pool.query('SELECT id, ten, diachi, sodienthoai FROM Partner');
@@ -147,7 +144,7 @@ app.get('/partners', async (req, res) => {
       res.status(500).json({ error: 'Server error' });
     }
 });
-
+// Tạo một đối tác mới
 app.post('/partners', async (req, res) => {
     const { ten, diachi, sodienthoai } = req.body;
     try {
@@ -161,7 +158,7 @@ app.post('/partners', async (req, res) => {
       res.status(500).json({ error: 'Failed to create partner' });
     }
 });
-
+// Chỉnh sửa thông tin của đối tác 
 app.put('/partners/:id', async (req, res) => {
     const { id } = req.params;
     const { ten, diachi, sodienthoai } = req.body;
