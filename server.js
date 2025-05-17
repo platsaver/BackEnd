@@ -2,6 +2,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(express.json());
@@ -72,7 +73,7 @@ app.post('/check-password', checkDeviceId, async (req, res) => {
     }
 
     try {
-        const result = await pool.query('SELECT password FROM users WHERE id = $1', [accessData.user_id]);
+        const result = await pool.query('SELECT password, username FROM users WHERE id = $1', [accessData.user_id]);
         
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'User not found' });
@@ -84,9 +85,17 @@ app.post('/check-password', checkDeviceId, async (req, res) => {
         // Xóa access code sau khi sử dụng
         accessCodes.delete(access_code);
 
+        // Tạo JWT
+        const token = jwt.sign(
+            { user_id: accessData.user_id, username: result.rows[0].username },
+            JWT_SECRET,
+            { expiresIn: '1h' } // Token hết hạn sau 1 giờ
+        );
+
         res.json({ 
             message: 'Login successful',
-            user_id: accessData.user_id 
+            user_id: accessData.user_id,
+            token // Trả về token cho client
         });
     } catch (error) {
         console.error('Error checking password:', error);
@@ -95,10 +104,18 @@ app.post('/check-password', checkDeviceId, async (req, res) => {
 });
 
 app.get('/verify-session', (req, res) => {
-    const token = req.headers['authorization']?.split(' ')[1]; // Lấy token từ header Authorization: Bearer <token>
+    const authHeader = req.headers['authorization'];
+    
+    // Kiểm tra Authorization header
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Invalid or missing Authorization header' });
+    }
 
-    if (!token) {
-        return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+
+    // Kiểm tra token cơ bản
+    if (!token || token.split('.').length !== 3) {
+        return res.status(401).json({ error: 'Malformed token' });
     }
 
     try {
@@ -176,7 +193,6 @@ app.delete('/partners/:id', async (req, res) => {
       res.status(500).json({ error: 'Failed to delete partner' });
     }
 });
-
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
