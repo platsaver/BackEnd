@@ -121,6 +121,63 @@ app.post('/logout', (req, res) => {
     res.json({ message: 'Logged out successfully' });
 });
 
+app.get('/partners', async (req, res) => {
+    try {
+      const result = await pool.query('SELECT id, ten, diachi, sodienthoai FROM Partner');
+      res.json(result.rows);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/partners', async (req, res) => {
+    const { ten, diachi, sodienthoai } = req.body;
+    try {
+      const result = await pool.query(
+        'INSERT INTO Partner (ten, diachi, sodienthoai) VALUES ($1, $2, $3) RETURNING *',
+        [ten, diachi, sodienthoai]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Failed to create partner' });
+    }
+});
+
+app.put('/partners/:id', async (req, res) => {
+    const { id } = req.params;
+    const { ten, diachi, sodienthoai } = req.body;
+    try {
+      const result = await pool.query(
+        'UPDATE Partner SET ten = $1, diachi = $2, sodienthoai = $3 WHERE id = $4 RETURNING *',
+        [ten, diachi, sodienthoai, id]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Partner not found' });
+      }
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Failed to update partner' });
+    }
+});
+
+app.delete('/partners/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+      const result = await pool.query('DELETE FROM Partner WHERE id = $1 RETURNING *', [id]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Partner not found' });
+      }
+      res.json({ message: 'Partner deleted successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Failed to delete partner' });
+    }
+});
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
