@@ -191,6 +191,62 @@ app.delete('/partners/:id', async (req, res) => {
     }
 });
 
+//API liên quan đến quản lý nhân sự
+//Xem tất cả các nhân sự
+app.get('/employees', async (req, res) => {
+    try {
+      const result = await pool.query(`
+            SELECT NhanSu.*, Partner.Ten AS TenDoiTac
+            FROM NhanSu
+            LEFT JOIN Partner ON NhanSu.PartnerID = Partner.ID
+        `);
+      res.json(result.rows);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+});
+
+//Thêm nhân sự mới
+app.post('/employees', async (req, res) => {
+    try {
+      const { ten, sodienthoai, diachi, partnerid } = req.body;
+      const result = await pool.query(
+        'INSERT INTO NhanSu (Ten, SoDienThoai, DiaChi, PartnerID) VALUES ($1, $2, $3, $4) RETURNING *',
+        [ten, sodienthoai, diachi, partnerid]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+});
+
+//Cập nhật thông tin nhân sự
+app.put('/employees/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { ten, sodienthoai, diachi, partnerid } = req.body;
+      const result = await pool.query(
+        'UPDATE NhanSu SET Ten = $1, SoDienThoai = $2, DiaChi = $3, PartnerID = $4 WHERE ID = $5 RETURNING *',
+        [ten, sodienthoai, diachi, partnerid, id]
+      );
+      if (result.rows.length === 0) return res.status(404).json({ error: 'Nhân sự không tồn tại' });
+      res.json(result.rows[0]);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/employees/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await pool.query('DELETE FROM NhanSu WHERE ID = $1 RETURNING *', [id]);
+      if (result.rows.length === 0) return res.status(404).json({ error: 'Nhân sự không tồn tại' });
+      res.json({ message: 'Nhân sự đã được xóa' });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

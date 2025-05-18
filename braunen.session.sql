@@ -13,7 +13,23 @@ CREATE TABLE Partner(
     DiaChi VARCHAR(225),
     SoDienThoai VARCHAR(225)
 );
+TRUNCATE TABLE Partner RESTART IDENTITY CASCADE;
 INSERT INTO Partner (Ten, DiaChi, SoDienThoai) VALUES
-('Công ty ABC', '123 Đường Lê Lợi, Hà Nội', '0987654321'),
-('Công ty XYZ', '456 Đường Nguyễn Huệ, TP. Hồ Chí Minh', '0912345678'),
-('Công ty DEF', '789 Đường Trần Phú, Đà Nẵng', '0909876543');
+('Công ty ABC', 'Hà Nội, Việt Nam', '0981234567'),
+('Tập đoàn XYZ', 'TP. Hồ Chí Minh, Việt Nam', '0976543210'),
+('Công ty DEF', 'Đà Nẵng, Việt Nam', '0967890123');
+select * from Partner
+CREATE TABLE NhanSu (
+    ID SERIAL PRIMARY KEY,
+    Ten VARCHAR(225) NOT NULL,
+    SoDienThoai VARCHAR(225) NOT NULL,
+    DiaChi VARCHAR(225) NOT NULL,
+    PartnerID INT,
+    FOREIGN KEY (PartnerID) REFERENCES Partner(ID)
+);
+INSERT INTO NhanSu (Ten, SoDienThoai, DiaChi, PartnerID) VALUES
+('Nguyễn Văn A', '0987654321', 'Hà Nội, Việt Nam', 1),
+('Trần Thị B', '0912345678', 'TP. Hồ Chí Minh, Việt Nam', 2),
+('Lê Văn C', '0901234567', 'Đà Nẵng, Việt Nam', 1),
+('Phạm Thị D', '0976543210', 'Cần Thơ, Việt Nam', 3),
+('Hoàng Minh E', '0967890123', 'Hải Phòng, Việt Nam', 2);
